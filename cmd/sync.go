@@ -14,7 +14,7 @@ import (
 var (
 	all             bool
 	projectsPattern string
-	project         string
+	projects        []string
 	dependency      string
 	version         string
 	shouldReplace   bool
@@ -87,24 +87,26 @@ func build(servicePath string) {
 	println(string(out))
 }
 
-func action(service string) {
-	pomPath := service + "/pom.xml"
-	if utils.Exists(pomPath) {
-		println("=========================================" + pomPath)
-		if shouldReplace {
-			replace(pomPath, version)
-		}
-		if shouldShowDiff {
-			showDiff(service)
-		}
-		if shouldGitAddPom {
-			gitAddPom(service)
-		}
-		if shouldMvnUpdate {
-			mvnUpdate(service)
-		}
-		if shouldBuild {
-			build(service)
+func action(projects []string) {
+	for _, project := range projects {
+		pomPath := project + "/pom.xml"
+		if utils.Exists(pomPath) {
+			println("=========================================" + pomPath)
+			if shouldReplace {
+				replace(pomPath, version)
+			}
+			if shouldShowDiff {
+				showDiff(project)
+			}
+			if shouldGitAddPom {
+				gitAddPom(project)
+			}
+			if shouldMvnUpdate {
+				mvnUpdate(project)
+			}
+			if shouldBuild {
+				build(project)
+			}
 		}
 	}
 }
@@ -114,11 +116,11 @@ var rootCmd = &cobra.Command{
 	Short: "Sync specified dependency to specified version",
 	Long:  `Sync specified dependency to specified version`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(dependency) == 0 || len(version) == 0 {
+		if shouldReplace && (len(dependency) == 0 || len(version) == 0) {
 			_ = cmd.Help()
 			return
 		}
-		if !all && len(project) == 0 {
+		if !all && len(projects) == 0 {
 			_ = cmd.Help()
 			return
 		}
@@ -127,16 +129,13 @@ var rootCmd = &cobra.Command{
 			return
 		}
 		if all {
-			services, err := filepath.Glob(projectsPattern)
+			var err error
+			projects, err = filepath.Glob(projectsPattern)
 			if err != nil {
 				panic(err)
 			}
-			for _, service := range services {
-				action(service)
-			}
-		} else {
-			action(project)
 		}
+		action(projects)
 	},
 }
 
@@ -148,13 +147,13 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().StringVarP(&projectsPattern, "pattern", "p", "../../../*-service", "path pattern of target projects")
-	rootCmd.Flags().StringVarP(&project, "project", "j", "", "specified project path to sync")
+	rootCmd.Flags().StringVarP(&projectsPattern, "pattern", "p", "", "path pattern of target projects")
+	rootCmd.Flags().StringArrayVarP(&projects, "projects", "j", []string{}, "specified projects path to sync")
 	rootCmd.Flags().StringVarP(&dependency, "dependency", "d", "", "dependency name")
 	rootCmd.Flags().StringVarP(&version, "version", "v", "", "new version of dependency to sync")
 	rootCmd.Flags().BoolVarP(&all, "all", "a", false, "replace all services or not")
 
-	rootCmd.Flags().BoolVarP(&shouldReplace, "replace", "r", true, "replace all services or not")
+	rootCmd.Flags().BoolVarP(&shouldReplace, "replace", "r", false, "replace all services or not")
 	rootCmd.Flags().BoolVarP(&shouldShowDiff, "showdiff", "s", false, "replace all services or not")
 	rootCmd.Flags().BoolVarP(&shouldGitAddPom, "gitaddpom", "g", false, "replace all services or not")
 	rootCmd.Flags().BoolVarP(&shouldMvnUpdate, "mvnupdate", "u", false, "replace all services or not")
