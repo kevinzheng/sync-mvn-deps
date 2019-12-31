@@ -1,0 +1,6 @@
+sync-mvn-deps
+
+.vscode
+.history
+.idea
+target/
