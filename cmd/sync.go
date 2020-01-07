@@ -38,7 +38,7 @@ func replace(filePath string, newVersion string) {
 
 	content := string(bytes)
 
-	pattern := fmt.Sprintf(`(<artifactId>%v</artifactId>[\n\s]+<version>)[0-9\.-]+(</version>)`, dependency)
+	pattern := fmt.Sprintf(`(<artifactId>%v</artifactId>[\n\s]+<version>).+(</version>)`, dependency)
 	reg := regexp.MustCompile(pattern)
 	newContent := reg.ReplaceAllString(content, "${1}"+newVersion+"${2}")
 	err = ioutil.WriteFile(filePath, []byte(newContent), 0644)
